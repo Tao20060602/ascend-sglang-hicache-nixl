@@ -54,3 +54,12 @@ bash scripts/90_teardown.sh         # 6. 按 PID 终止(禁止 pgrep/pkill)
 - HiCache 设计文档:https://docs.sglang.ai/advanced_features/hicache_design.html
 - NIXL 仓库:https://github.com/ai-dynamo/nixl
 - 昇腾 SGLang 大 EP 推理文章:https://www.hiascend.com/developer/techArticles/20250813-1
+
+## 已完成验证:CPU 仿真环境(aarch64)结论(2026-11-23)
+
+环境:GitCode 鲲鹏 CPU 仿真环境,Ubuntu 24.04,aarch64,16 核 / 30 GiB 内存,内核 5.10,无 NPU、无 GPFS。
+
+- **结论:不可用,跳过引擎**(用户决策)。真实验证等 910C NPU 环境(B 臂 NPU 档脚本已就绪)。
+- 安装阶段:sglang 0.5.23 官方 aarch64 cp312 轮子安装成功、import 成功;但 `sglang[all_cpu]` extra 未锁定 CPU 版 torch,连带拉取数 GB 的 NVIDIA CUDA 运行库(适配缺陷,已记录)。
+- 启动阶段:失败。`launch_server --device cpu` 的 scheduler 立即退出,失败点 `torch.ops.sgl_kernel.init_cpu_threads_env` 不存在——sgl-kernel 的 CPU 算子仅含 x86 内核,aarch64 无对应构建。属支持缺失,非配置问题。
+- 环境附带发现(镜像缺陷):镜像将 `/usr/bin/python3` 软链指向 `/opt/buildtools/python-3.12.9`,该解释器 `_ctypes` 扩展损坏(`undefined symbol: _PyErr_SetLocaleString`),任何源码构建失败;修复:`sudo apt-get update && sudo apt-get install --reinstall python3.12-minimal`(详见 A 臂仓库 `11_install_cpu_stack.sh` 头注)。
